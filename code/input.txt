@@ -1,0 +1,36 @@
+decl
+int a;
+str hello;
+int i;
+int s;
+enddecl
+
+
+begin
+
+read(a);
+
+if(a-2*(a/2) == 0) then
+  i = 1;
+  s = 0;
+  while(i<=10) do
+    s = s + i;
+    i = i + 1;
+  endwhile;
+
+  write(s);
+
+else
+  i = 1;
+  s = 1;
+  while(i<=8) do
+    s = s * i;
+    i = i + 1;
+  endwhile;
+
+  write(s);
+
+endif;
+
+
+end;

@@ -2,13 +2,13 @@
 #include <stdlib.h>
 #include <string.h>
 #include <stdbool.h>
-#include "symbol.h"
+#include "Gsymbol.h"
 
-struct symbol* head = NULL;
+struct Gsymbol* head = NULL;
 static int address = 4095;
 
-struct symbol* createNode(char* name, int type,int size){
-  struct symbol* temp = (struct symbol*)malloc(sizeof(struct symbol));
+struct Gsymbol* createNode(char* name, int type,int size){
+  struct Gsymbol* temp = (struct Gsymbol*)malloc(sizeof(struct Gsymbol));
   temp->name = (char*)malloc(sizeof(char)*100);
   temp->name = strcpy(temp->name,name);
   temp->type = type;
@@ -20,10 +20,10 @@ struct symbol* createNode(char* name, int type,int size){
 }
 
 
-void addSymbol(char* name,int type,int size){
+void addGSymbol(char* name,int type,int size){
 
   if( !lookUp(name) ){
-    struct symbol* temp = createNode(name,type,size);
+    struct Gsymbol* temp = createNode(name,type,size);
     temp->next = head;
     head = temp;
 
@@ -36,9 +36,9 @@ void addSymbol(char* name,int type,int size){
 
 }
 
-struct symbol* lookUp(char* name){
+struct Gsymbol* lookUp(char* name){
 
-  struct symbol* current = head;
+  struct Gsymbol* current = head;
 
   while(current != NULL){
 
@@ -59,7 +59,7 @@ struct symbol* lookUp(char* name){
 
 bool checkIfDeclared(char* name){
 
-  struct symbol* current = head;
+  struct Gsymbol* current = head;
   while(current!=NULL){
     if( strcmp(current->name,name) == 0 ){
       return true;    
@@ -73,10 +73,10 @@ bool checkIfDeclared(char* name){
 
 }
 
-// PRINTING DETAILS OF ALL SYMBOLS IN THE LINKED LIST
+// PRINTING DETAILS OF ALL GsymbolS IN THE LINKED LIST
 
 void getAll(){
-  struct symbol* current = head;
+  struct Gsymbol* current = head;
   while( current != NULL ){
     printf("name : %s | type : %d | size : %d | address : %d\n",current->name,current->type,current->size,current->address);
     current = current->next;

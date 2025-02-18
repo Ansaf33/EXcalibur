@@ -11,7 +11,7 @@ static bool continueFlag = false;
 // ---------------------------------- GETTING ADDRESS FROM A NODE
 
 int getSymbolAddress(struct TreeNode* root){
-  return root->symbol->address;
+  return root->Gsymbol->address;
 }
 
 // ---------------------------------- MAIN EVALUATION FUNCTION FOR STATEMENTS

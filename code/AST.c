@@ -5,7 +5,7 @@
 #include <string.h>
 #include "AST.h"
 #include "operators/optrans.h"
-#include "symbol_table/symbol.h"
+#include "symbol_table/Gsymbol.h"
 
 
 
@@ -66,7 +66,7 @@ struct TreeNode* createNumNode(int val){
   temp->left = NULL;
   temp->right = NULL;
   temp->middle = NULL;
-  temp->symbol = NULL;
+  temp->Gsymbol = NULL;
 
   return temp;
 }
@@ -84,7 +84,7 @@ struct TreeNode* createOpNode(int type,int op,struct TreeNode* left,struct TreeN
   temp->left = left;
   temp->right = right;
   temp->middle = NULL;
-  temp->symbol = NULL;
+  temp->Gsymbol = NULL;
 
 
   if( left  ){ 
@@ -114,7 +114,7 @@ struct TreeNode* createStringNode(char* string){
   temp->left = NULL;
   temp->right = NULL;
   temp->middle = NULL;
-  temp->symbol = NULL;
+  temp->Gsymbol = NULL;
 
   return temp;
 }
@@ -126,9 +126,9 @@ struct TreeNode* createStringNode(char* string){
 struct TreeNode* createIdNode(char* varname){
 
   struct TreeNode* temp = (struct TreeNode*)malloc(sizeof(struct TreeNode));
-  temp->symbol = lookUp(varname);
+  temp->Gsymbol = lookUp(varname);
 
-  if(temp->symbol == NULL){
+  if(temp->Gsymbol == NULL){
     printf("Cannot declare variables outside declaration scope\n");
     exit(1);
   }
@@ -136,7 +136,7 @@ struct TreeNode* createIdNode(char* varname){
   temp->val = -1;
   temp->string = NULL;
   temp->op = -1;
-  temp->type = temp->symbol->type;
+  temp->type = temp->Gsymbol->type;
   temp->varname = (char*)malloc(sizeof(char)*100);
   strcpy(temp->varname,varname);
   temp->left = NULL;
@@ -161,7 +161,7 @@ struct TreeNode* createIfNode(struct TreeNode* middle,struct TreeNode* left,stru
   temp->left = left;
   temp->middle = middle;
   temp->right = right;
-  temp->symbol = NULL;
+  temp->Gsymbol = NULL;
 
   // CHECK IF SATISFIABLE
 
@@ -189,7 +189,7 @@ struct TreeNode* createWhileNode(int op,struct TreeNode* left,struct TreeNode* r
   temp->left = left;
   temp->right = right;
   temp->middle = NULL;
-  temp->symbol = NULL;
+  temp->Gsymbol = NULL;
 
   // CHECK IF SATISFIABLE
 

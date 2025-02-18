@@ -2,7 +2,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include "varList.h"
-#include "symbol.h"
+#include "Gsymbol.h"
 
 
 struct list* createVarNode(char* name){
@@ -33,7 +33,7 @@ void printDetails(struct list* head){
 void addAllSymbols(struct list* head, int type,int size){
   struct list* cur = head;
   while(cur != NULL){
-    addSymbol(cur->name,type,size);
+    addGSymbol(cur->name,type,size);
     cur = cur->next;
   }
 }

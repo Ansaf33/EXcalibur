@@ -4,7 +4,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdbool.h>
-#include "symbol_table/symbol.h"
+#include "symbol_table/Gsymbol.h"
 
 struct TreeNode{
 
@@ -19,7 +19,7 @@ struct TreeNode{
   struct TreeNode* middle;
   struct TreeNode* right;
 
-  struct symbol* symbol;
+  struct Gsymbol* Gsymbol;
 };
 
 bool typeSatisfied(struct TreeNode* root);

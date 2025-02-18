@@ -3,7 +3,7 @@
 
 #include <stdio.h>
 #include <stdlib.h>
-#include "AST.h"
+#include "../AST.h"
 
 void evaluate(struct TreeNode* root);
 

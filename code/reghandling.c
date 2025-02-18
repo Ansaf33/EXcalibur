@@ -3,7 +3,7 @@
 #include <stdlib.h>
 #include <stdbool.h>
 #include "AST.h"
-#include "symbol_table/symbol.h"
+#include "symbol_table/Gsymbol.h"
 
 // define the maximum limit of registers R0 to R19
 #define NOR 20
@@ -13,10 +13,10 @@ static int highestUsedReg = -1;
 // INITIALLY, NO LABELS ARE USED
 static int highestUsedLabel = -1;
 
-// --------------------------------------------------------- GET SYMBOL ADDRESS
+// --------------------------------------------------------- GET GSymbol ADDRESS
 
 int getSymbolAddress(struct TreeNode* root){
-  return root->symbol->address;
+  return root->Gsymbol->address;
 }
 
 // --------------------------------------------------------- GET LABEL FUNCTION
@@ -199,7 +199,7 @@ void assignment_codeGen(FILE* f,struct TreeNode* root){
 
 
 
-  // Get address from symbol table
+  // Get address from GSymbol table
   int memAddress = getSymbolAddress(root->left);
 
   // store the register contents in the memory location 'storeIn'

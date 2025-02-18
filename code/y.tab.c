@@ -75,8 +75,8 @@
 #include <string.h>
 #include "AST.h"
 #include "reghandling.h"
-#include "evaluator.h"
-#include "symbol_table/symbol.h"
+#include "evaluator/evaluator.h"
+#include "symbol_table/Gsymbol.h"
 #include "symbol_table/varList.h"
 
 

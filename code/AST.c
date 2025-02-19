@@ -3,10 +3,12 @@
 #include <stdlib.h>
 #include <stdbool.h>
 #include <string.h>
+#include "map_implementation/map.h"
 #include "AST.h"
 #include "operators/optrans.h"
 #include "symbol_table/Gsymbol.h"
 
+struct map* cache = NULL;
 
 
 // ------------- CHECK IF TYPE IS SAME
@@ -57,6 +59,16 @@ bool typeSatisfied(struct TreeNode* root){
 // -------------- CREATE NODE FOR NUMBERS
 
 struct TreeNode* createNumNode(int val){
+
+  // ---------------------- HANDLES MAPPING ---------------
+  char con[20];
+  sprintf(con,"%d",val);
+  struct TreeNode* cached_val = get(cache,con);
+  if( cached_val ) {
+    return cached_val;
+  }
+
+
   struct TreeNode* temp = (struct TreeNode*)malloc(sizeof(struct TreeNode));
   temp->val = val;
   temp->string = NULL;
@@ -68,13 +80,36 @@ struct TreeNode* createNumNode(int val){
   temp->middle = NULL;
   temp->Gsymbol = NULL;
 
+  temp->content = (char*)malloc(sizeof(char)*100);
+  strcpy(temp->content,con);
+  cache = insert(cache,temp->content,temp);
+
+
   return temp;
+  
 }
 
 // -------------- CREATE NODE FOR OPERATORS
 
 
 struct TreeNode* createOpNode(int type,int op,struct TreeNode* left,struct TreeNode* right){
+
+  char* content = (char*)malloc(sizeof(char)*100); 
+  // ---------------------- HANDLES MAPPING --------------- ONLY UNDER ARITHMETIC OPERATORS AND LOGICAL OPERATORS
+  if( op <= 10 ){
+    if( left && right ) {
+      strcat(content,left->content);
+      strcat(content,map(op));
+      strcat(content,right->content);
+    }
+
+    struct TreeNode* cached_val = get(cache,content);
+    if( cached_val ) {
+      return cached_val;
+    }
+  }
+  // ------------------- FINISH MAPPING -----------------------
+
   struct TreeNode* temp = (struct TreeNode*)malloc(sizeof(struct TreeNode));
   temp->val = -1;
   temp->string = NULL;
@@ -85,16 +120,18 @@ struct TreeNode* createOpNode(int type,int op,struct TreeNode* left,struct TreeN
   temp->right = right;
   temp->middle = NULL;
   temp->Gsymbol = NULL;
+  temp->content = (char*)malloc(sizeof(char)*100);
+  strcpy(temp->content,content);
 
+  if( op <= 10 ){
+    cache = insert(cache,temp->content,temp);
+  }
 
   if( left  ){ 
     if(!typeSatisfied(temp)){
-      printf("Operator Condition : Type not matching.\n");
       exit(1);
     }
   }
-
-  
 
 
   return temp;
@@ -104,6 +141,14 @@ struct TreeNode* createOpNode(int type,int op,struct TreeNode* left,struct TreeN
 
 
 struct TreeNode* createStringNode(char* string){
+
+  // ---------------------- HANDLES MAPPING ---------------
+  struct TreeNode* cached_val = get(cache,string);
+  if( cached_val ) {
+    return cached_val;
+  }
+  // ---------------------- MAPPING FINISHED ----------------
+
   struct TreeNode* temp = (struct TreeNode*)malloc(sizeof(struct TreeNode));
   temp->val = -1;
   temp->string = (char*)malloc(sizeof(char)*100);
@@ -116,7 +161,11 @@ struct TreeNode* createStringNode(char* string){
   temp->middle = NULL;
   temp->Gsymbol = NULL;
 
+  temp->content = (char*)malloc(sizeof(char)*100);
+  strcpy(temp->content,string);
+  cache = insert(cache,temp->content,temp);
   return temp;
+
 }
 
 
@@ -124,6 +173,13 @@ struct TreeNode* createStringNode(char* string){
 // -------------- CREATE NODE FOR IDs
 
 struct TreeNode* createIdNode(char* varname){
+  // ---------------------- HANDLES MAPPING ---------------
+  struct TreeNode* cached_val = get(cache,varname);
+  if( cached_val ) {
+      return cached_val;
+  }
+  // ---------------------- MAPPING FINISHED ----------------
+
 
   struct TreeNode* temp = (struct TreeNode*)malloc(sizeof(struct TreeNode));
   temp->Gsymbol = lookUp(varname);
@@ -142,6 +198,9 @@ struct TreeNode* createIdNode(char* varname){
   temp->left = NULL;
   temp->right = NULL;
   temp->middle = NULL;
+  temp->content = (char*)malloc(sizeof(char)*100);
+  strcpy(temp->content,varname);
+  cache = insert(cache,temp->content,temp);
 
 
   return temp;
@@ -162,6 +221,8 @@ struct TreeNode* createIfNode(struct TreeNode* middle,struct TreeNode* left,stru
   temp->middle = middle;
   temp->right = right;
   temp->Gsymbol = NULL;
+  temp->content = (char*)malloc(sizeof(char)*100);
+
 
   // CHECK IF SATISFIABLE
 
@@ -190,6 +251,7 @@ struct TreeNode* createWhileNode(int op,struct TreeNode* left,struct TreeNode* r
   temp->right = right;
   temp->middle = NULL;
   temp->Gsymbol = NULL;
+  temp->content = (char*)malloc(sizeof(char)*100);
 
   // CHECK IF SATISFIABLE
 
@@ -214,19 +276,19 @@ void Inorder(struct TreeNode* root){
   Inorder(root->left);
   // IT IS A NUMBER
   if(root->val != -1 ){
-    printf(" ( %d )",root->val);
+    printf(" [%d][%p]\n",root->val,root);
   }
   // IT IS A STRING
   if(root->string != NULL ){
-    printf(" ( %s )",root->string);
+    printf("[%s][%p]\n",root->string,root);
   }
   // IT IS AN OPERATOR
   else if(root->op != -1 ){
-    printf(" ( %s )",map(root->op));
+    printf("[%s][%p]\n",map(root->op),root);
   }
   // IT IS A VARIABLE
   else if( root->varname != NULL ){
-    printf(" ( %s )",root->varname);
+    printf("[%s][%p]\n",root->varname,root);
   }
 
   Inorder(root->middle);

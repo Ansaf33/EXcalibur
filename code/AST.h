@@ -20,6 +20,7 @@ struct TreeNode{
   struct TreeNode* right;
 
   struct Gsymbol* Gsymbol;
+  char* content;
 };
 
 bool typeSatisfied(struct TreeNode* root);

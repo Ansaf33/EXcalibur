@@ -211,17 +211,26 @@ struct TreeNode* createIdNode(char* varname){
 
 struct TreeNode* createIfNode(struct TreeNode* middle,struct TreeNode* left,struct TreeNode* right){
 
+  char* content = (char*)malloc(sizeof(char)*100); 
+  // ---------------------- HANDLES MAPPING --------------- ONLY UNDER ARITHMETIC OPERATORS AND LOGICAL OPERATORS
+  strcat(content,middle->left->content);
+  strcat(content,map(middle->op));
+  strcat(content,middle->right->content);
+
+  struct TreeNode* cached_val = get(cache,content);
+   // ------------------- FINISH MAPPING -----------------------
+
   struct TreeNode* temp = (struct TreeNode*)malloc(sizeof(struct TreeNode));
   temp->val = -1;
   temp->string = NULL;
   temp->op = 14;
   temp->type = -1;
-  temp->varname = NULL;
   temp->left = left;
-  temp->middle = middle;
+  temp->middle = (cached_val)?cached_val:middle;
   temp->right = right;
   temp->Gsymbol = NULL;
   temp->content = (char*)malloc(sizeof(char)*100);
+  strcpy(temp->content,content);
 
 
   // CHECK IF SATISFIABLE
@@ -241,13 +250,23 @@ struct TreeNode* createIfNode(struct TreeNode* middle,struct TreeNode* left,stru
 // ---------------- CREATE NODE FOR WHILE STATEMENTS
 
 struct TreeNode* createWhileNode(int op,struct TreeNode* left,struct TreeNode* right){
+
+  char* content = (char*)malloc(sizeof(char)*100); 
+  // ---------------------- HANDLES MAPPING --------------- ONLY UNDER ARITHMETIC OPERATORS AND LOGICAL OPERATORS
+  strcat(content,left->left->content);
+  strcat(content,map(left->op));
+  strcat(content,left->right->content);
+
+  struct TreeNode* cached_val = get(cache,content);
+  // ------------------- FINISH MAPPING -----------------------
+  
   struct TreeNode* temp = (struct TreeNode*)malloc(sizeof(struct TreeNode));  
   temp->val = -1;
   temp->string = NULL;
   temp->op = op;
   temp->type = -1;
   temp->varname = NULL;
-  temp->left = left;
+  temp->left = (cached_val)?cached_val:left;
   temp->right = right;
   temp->middle = NULL;
   temp->Gsymbol = NULL;

@@ -4,35 +4,36 @@
 
 #define CAPACITY 5 // Maximum cache size
 #define HASHMAP_SIZE 50
+#define MAX_DEPENDENCIES 10
 
 typedef struct LRUNode
 {
-  char *expression; // Expression as key
-  int register_id;  // Register ID as value
+  char *expression;
+  int register_id;
+  char *dependencies[MAX_DEPENDENCIES];
   struct LRUNode *prev;
   struct LRUNode *next;
+  struct LRUNode *hash_next; // For handling collisions in the hashmap
 } LRUNode;
 
 typedef struct
 {
-  LRUNode *head; // Most recently used (MRU)
-  LRUNode *tail; // Least recently used (LRU)
+  LRUNode *head;
+  LRUNode *tail;
   int size;
-  LRUNode *hashmap[HASHMAP_SIZE]; // Hashmap for fast lookups
+  LRUNode *hashmap[HASHMAP_SIZE];
 } LRUCache;
 
-// Hash function (basic sum-based hashing)
 unsigned int hash_func(const char *expression)
 {
   unsigned int hash = 0;
   while (*expression)
   {
-    hash = (hash * 31) + (*expression++); // Simple polynomial rolling hash
+    hash = (hash * 31) + (*expression++);
   }
   return hash % HASHMAP_SIZE;
 }
 
-// Create a new LRU Cache
 LRUCache *create_cache()
 {
   LRUCache *cache = (LRUCache *)malloc(sizeof(LRUCache));
@@ -46,60 +47,52 @@ LRUCache *create_cache()
   return cache;
 }
 
-// Move a node to the front (most recently used)
 void move_to_front(LRUCache *cache, LRUNode *node)
 {
   if (cache->head == node)
-    return; // Already at front
+    return;
 
-  // Remove node from current position
   if (node->prev)
     node->prev->next = node->next;
   if (node->next)
     node->next->prev = node->prev;
-
-  // If removing tail, update tail
   if (cache->tail == node)
     cache->tail = node->prev;
 
-  // Move node to front
   node->next = cache->head;
   node->prev = NULL;
   if (cache->head)
     cache->head->prev = node;
   cache->head = node;
+  if (!cache->tail)
+    cache->tail = node;
 }
 
-// Get a value from the cache
 int getValue(LRUCache *cache, const char *expression)
 {
   unsigned int hash = hash_func(expression);
   LRUNode *node = cache->hashmap[hash];
 
-  // Traverse the hashmap bucket to handle collisions
   while (node)
   {
     if (strcmp(node->expression, expression) == 0)
     {
       move_to_front(cache, node);
-      return node->register_id; // Return stored register
+      return node->register_id;
     }
-    node = node->next;
+    node = node->hash_next;
   }
-
-  return -1; // Not found
+  return -1;
 }
 
-// Put a value into the cache
-void put(LRUCache *cache, const char *expression, int reg_id)
+void put(LRUCache *cache, const char *expression, int reg_id, char **dependencies)
 {
   if (!expression)
-    return; // Handle null input
+    return;
 
   unsigned int hash = hash_func(expression);
   LRUNode *node = cache->hashmap[hash];
 
-  // Traverse the hashmap bucket to handle collisions
   while (node)
   {
     if (strcmp(node->expression, expression) == 0)
@@ -108,76 +101,96 @@ void put(LRUCache *cache, const char *expression, int reg_id)
       move_to_front(cache, node);
       return;
     }
-    node = node->next;
+    node = node->hash_next;
   }
 
-  // Evict least recently used (LRU) if full
   if (cache->size == CAPACITY)
   {
     LRUNode *lru = cache->tail;
     if (lru)
     {
       unsigned int old_hash = hash_func(lru->expression);
-      LRUNode *curr = cache->hashmap[old_hash];
-      LRUNode *prev = NULL;
-
-      // Remove from hashmap bucket
-      while (curr)
+      LRUNode **curr = &(cache->hashmap[old_hash]);
+      while (*curr)
       {
-        if (curr == lru)
+        if (*curr == lru)
         {
-          if (prev)
-            prev->next = curr->next;
-          else
-            cache->hashmap[old_hash] = curr->next;
+          *curr = lru->hash_next;
           break;
         }
-        prev = curr;
-        curr = curr->next;
+        curr = &((*curr)->hash_next);
       }
-
-      // Remove from linked list
       if (lru->prev)
         lru->prev->next = NULL;
+      else
+        cache->head = NULL;
       cache->tail = lru->prev;
-
       free(lru->expression);
+
+      if( lru->dependencies ){
+        int i = 0;
+        while( lru->dependencies[i] != NULL ){
+          free(lru->dependencies[i]);
+          i++;
+        }
+      }
+
       free(lru);
       cache->size--;
     }
   }
 
-  // Create new node
   LRUNode *new_node = (LRUNode *)malloc(sizeof(LRUNode));
   if (!new_node)
-    return; // Handle malloc failure
+    return;
 
   new_node->expression = strdup(expression);
-  if (!new_node->expression)
-  {
-    free(new_node);
-    return; // Handle strdup failure
-  }
-
   new_node->register_id = reg_id;
+
+  if( dependencies ){
+    int i = 0;
+    while( dependencies[i] != NULL ){
+      new_node->dependencies[i] = (char*)malloc(sizeof(char)*10);
+      strcpy(new_node->dependencies[i],dependencies[i]);
+      i++;
+    }
+  }
+ 
+
   new_node->prev = NULL;
   new_node->next = cache->head;
-
-  // Add to front
+  new_node->hash_next = cache->hashmap[hash];
   if (cache->head)
     cache->head->prev = new_node;
   cache->head = new_node;
   if (!cache->tail)
     cache->tail = new_node;
 
-  // Add to hashmap
-  new_node->next = cache->hashmap[hash];
   cache->hashmap[hash] = new_node;
-
   cache->size++;
 }
 
-// Print cache (for debugging)
+void invalidate_dependencies(LRUCache *cache, const char *variable)
+{
+  LRUNode *current = cache->head;
+  while (current)
+  {
+    LRUNode *next = current->next;
+
+    if( current->dependencies ){
+      int i = 0;
+      while( current->dependencies[i] != NULL ){
+        if( strcmp(current->dependencies[i],variable) == 0 ){
+          put(cache,current->expression,-1,NULL);
+          break;
+        }
+        i++;
+      }
+    }
+    current = next;
+  }
+}
+
 void print_cache(LRUCache *cache)
 {
   LRUNode *current = cache->head;
@@ -185,12 +198,20 @@ void print_cache(LRUCache *cache)
   while (current)
   {
     printf("[%s: R%d] -> ", current->expression, current->register_id);
+    if( current->dependencies ){
+      int i = 0;
+      printf("( ");
+      while( current->dependencies[i] != NULL ){
+        printf("%s, ",current->dependencies[i]);
+        i++;
+      }
+      printf(") ]\n");
+    }
     current = current->next;
   }
   printf("NULL\n");
 }
 
-// Free memory
 void free_cache(LRUCache *cache)
 {
   LRUNode *current = cache->head;
@@ -199,6 +220,13 @@ void free_cache(LRUCache *cache)
     LRUNode *temp = current;
     current = current->next;
     free(temp->expression);
+    if( temp->dependencies ){
+      int i = 0;
+      while(temp->dependencies[i] != NULL ){
+        free(temp->dependencies[i]);
+        i++;
+      }
+    }
     free(temp);
   }
   free(cache);

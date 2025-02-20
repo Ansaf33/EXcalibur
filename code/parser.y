@@ -9,7 +9,7 @@
 #include "symbol_table/Gsymbol.h"
 #include "symbol_table/varList.h"
 #include "map_implementation/new_map.h"
-
+#include "LRUcache/LRUcache.h"
 
 struct TreeNode* root;
 
@@ -97,8 +97,9 @@ P :
   BEG SL END ';' {
     root = $2;
     printf("Valid Program.\n");
-    Inorder($2);
-
+    Inorder($2);  
+    LRUCache* cache = get_cache();
+    print_cache(cache);
   }
   |
   BEG END ';' {
@@ -274,6 +275,8 @@ int main(int argc, char* argv[]){
   yyin = f;
 
   bool initialized = init_hashmap();
+  initialized = init_cache();
+
   yyparse();
 
 

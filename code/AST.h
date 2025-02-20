@@ -5,6 +5,7 @@
 #include <stdlib.h>
 #include <stdbool.h>
 #include "symbol_table/Gsymbol.h"
+#include "LRUcache/LRUcache.h"
 
 struct TreeNode{
 
@@ -20,8 +21,14 @@ struct TreeNode{
   struct TreeNode* right;
 
   struct Gsymbol* Gsymbol;
+
   char* content;
+  char* dependencies[10];
 };
+
+LRUCache* get_cache();
+
+bool init_cache(void);
 
 bool init_hashmap(void);
 
@@ -41,6 +48,9 @@ struct TreeNode* createWhileNode(int op,struct TreeNode* left, struct TreeNode* 
 
 void Inorder(struct TreeNode* root);
 
+void addDependencies(struct TreeNode* root,struct TreeNode* left,struct TreeNode* right);
+
+void getDependencies(struct TreeNode* root);
 #endif
 
 

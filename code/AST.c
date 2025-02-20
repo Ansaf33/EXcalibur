@@ -5,18 +5,30 @@
 #include <string.h>
 #include "map_implementation/map.h"
 #include "map_implementation/new_map.h"
+#include "LRUcache/LRUcache.h"
 #include "AST.h"
 #include "operators/optrans.h"
 #include "symbol_table/Gsymbol.h"
 
+// ------------------------------------------------------------------------------------------------------------- HASHMAP AND CACHE
 HashMap* hashmap = NULL;
+LRUCache* cache = NULL;
 
 bool init_hashmap(){
   hashmap = createHashMap();
   return true;
 }
 
-// ------------- CHECK IF TYPE IS SAME
+bool init_cache(){
+  cache = create_cache();
+  return true;
+}
+
+LRUCache* get_cache(){
+  return cache;
+}
+
+// ------------------------------------------------------------------------------------------------------------- TYPE CHECKING
 
 bool typeSatisfied(struct TreeNode* root){
     
@@ -61,11 +73,12 @@ bool typeSatisfied(struct TreeNode* root){
 
 }
 
-// -------------- CREATE NODE FOR NUMBERS
+// -------------------------------------------------------------------------------------------- CREATE NUMBER NODE
 
 struct TreeNode* createNumNode(int val){
 
   // ---------------------- HANDLES MAPPING ---------------
+
   char con[20];
   sprintf(con,"%d",val);
   struct TreeNode* cached_val = get(hashmap,con);
@@ -93,13 +106,14 @@ struct TreeNode* createNumNode(int val){
   
 }
 
-// -------------- CREATE NODE FOR OPERATORS
+// -------------------------------------------------------------------------------------------- CREATE OPERATOR NODE
 
 
 struct TreeNode* createOpNode(int type,int op,struct TreeNode* left,struct TreeNode* right){
 
   char* content = (char*)malloc(sizeof(char)*100); 
-  // ---------------------- HANDLES MAPPING --------------- ONLY UNDER ARITHMETIC OPERATORS AND LOGICAL OPERATORS
+
+  // ---------------------- HANDLES MAPPING ---------------
   if( op <= 10 && op != 4 ){
     if( left && right ) {
       strcat(content,left->content);
@@ -112,6 +126,9 @@ struct TreeNode* createOpNode(int type,int op,struct TreeNode* left,struct TreeN
       return cached_val;
     }
   }
+
+  // ----------------------- REMOVES FROM LRU BECAUSE INVALIDATED-------------- 
+ 
   // ------------------- FINISH MAPPING -----------------------
 
   struct TreeNode* temp = (struct TreeNode*)malloc(sizeof(struct TreeNode));
@@ -124,12 +141,20 @@ struct TreeNode* createOpNode(int type,int op,struct TreeNode* left,struct TreeN
   temp->right = right;
   temp->middle = NULL;
   temp->Gsymbol = NULL;
+
   temp->content = (char*)malloc(sizeof(char)*100);
   strcpy(temp->content,content);
 
   if( op <= 10 && op != 4 ){
     insert(hashmap,temp->content,temp);
-  }
+
+    // add dependencies to operator node
+    addDependencies(temp,left,right);
+
+    put(cache,content,-1,temp->dependencies);
+ 
+  } 
+
 
   if( left  ){ 
     if(!typeSatisfied(temp)){
@@ -141,13 +166,14 @@ struct TreeNode* createOpNode(int type,int op,struct TreeNode* left,struct TreeN
   return temp;
 }
 
-// --------------- CREATE NODE FOR STRINGS
+// ----------------------------------------------------------------------------------------------------------- CREATE NODE FOR STRINGS
 
 
 struct TreeNode* createStringNode(char* string){
 
   // ---------------------- HANDLES MAPPING ---------------
   struct TreeNode* cached_val = get(hashmap,string);
+  put(cache,string,-1,NULL);
   if( cached_val ) {
     return cached_val;
   }
@@ -175,7 +201,7 @@ struct TreeNode* createStringNode(char* string){
 
 
 
-// -------------- CREATE NODE FOR IDs
+// -------------------------------------------------------------------------------------------------------------------- CREATE NODE FOR IDs
 
 struct TreeNode* createIdNode(char* varname){
   // ---------------------- HANDLES MAPPING ---------------
@@ -203,20 +229,24 @@ struct TreeNode* createIdNode(char* varname){
   temp->left = NULL;
   temp->right = NULL;
   temp->middle = NULL;
+
   temp->content = (char*)malloc(sizeof(char)*100);
   strcpy(temp->content,varname);
   insert(hashmap,temp->content,temp);
 
+  // add dependency to ID node
+  temp->dependencies[0] = (char*)malloc(sizeof(char)*10);
+  strcpy(temp->dependencies[0],varname);
 
   return temp;
 
 }
 
-// -------------- CREATE NODE FOR IF STATEMENTS
+// ----------------------------------------------------------------------------------------------------------------- CREATE NODE FOR IF STATEMENTS
 
 struct TreeNode* createIfNode(struct TreeNode* middle,struct TreeNode* left,struct TreeNode* right){
 
-  char* content = (char*)malloc(sizeof(char)*100); 
+  char* content = (char*)malloc(sizeof(char)*100);
   // ---------------------- HANDLES MAPPING --------------- ONLY UNDER ARITHMETIC OPERATORS AND LOGICAL OPERATORS
   strcat(content,middle->left->content);
   strcat(content,map(middle->op));
@@ -256,7 +286,7 @@ struct TreeNode* createIfNode(struct TreeNode* middle,struct TreeNode* left,stru
 
 }
 
-// ---------------- CREATE NODE FOR WHILE STATEMENTS
+// ---------------------------------------------------------------------------------------------------------------- CREATE NODE FOR WHILE STATEMENTS
 
 struct TreeNode* createWhileNode(int op,struct TreeNode* left,struct TreeNode* right){
 
@@ -300,6 +330,8 @@ struct TreeNode* createWhileNode(int op,struct TreeNode* left,struct TreeNode* r
 
 }
 
+// ------------------------------------------------------------------------------------------------------------------ INORDER TRAVERSAL
+
 void Inorder(struct TreeNode* root){
   if(root == NULL){
     return;
@@ -307,21 +339,94 @@ void Inorder(struct TreeNode* root){
   Inorder(root->left);
   // IT IS A NUMBER
   if(root->val != -1 ){
-    printf(" [%d]-----[%p]\n",root->val,root);
+    printf("[ %d ] ----- [ %p ] ----- \n",root->val,root);
   }
   // IT IS A STRING
   if(root->string != NULL ){
-    printf("[%s]------[%p]\n",root->string,root);
+    printf("[ %s ] ------ [ %p ] ----- \n",root->string,root);
   }
   // IT IS AN OPERATOR
   else if(root->op != -1 ){
-    printf("[%s]-----[%p]\n",map(root->op),root);
+    printf("[ %s ] ----- [ %p ] ----- ",map(root->op),root);
+    getDependencies(root);
   }
   // IT IS A VARIABLE
   else if( root->varname != NULL ){
-    printf("[%s]-----[%p]\n",root->varname,root);
+    printf("[ %s ] ----- [ %p ] -----",root->varname,root);
+    getDependencies(root);
   }
 
   Inorder(root->middle);
   Inorder(root->right);
+}
+
+// ------------ ADDING DEPENDENCIES
+
+void addDependencies(struct TreeNode* temp,struct TreeNode* left,struct TreeNode* right){
+  // add left to temp's dependencies
+  int idx = 0;
+  if( left->dependencies ){
+    int i = 0;
+
+    while( left->dependencies[i] != NULL ){
+
+      // -------------------------------------- checking duplicate
+      int dup = 0;
+      for(int j=0;j<idx;j++){
+        if( strcmp(temp->dependencies[j],left->dependencies[i]) == 0 ){
+          dup = 1;
+          break;
+        }
+        j++;
+      }
+      if( dup ){
+        i++;
+        continue;
+      }
+      // --------------------------------------- finished checking
+      temp->dependencies[idx] = (char*)malloc(sizeof(char)*10);
+      strcpy(temp->dependencies[idx],left->dependencies[i]);
+      idx++;
+      i++;
+    }
+  }
+  // add right to temp's dependencies
+  if( right->dependencies ){
+    int i = 0;
+    while(right->dependencies[i] != NULL ){
+      // -------------------------------------- checking duplicate
+      int dup = 0;
+      for(int j=0;j<idx;j++){
+        if( strcmp(temp->dependencies[j],right->dependencies[i]) == 0 ){
+          dup = 1;
+          break;
+        }
+        j++;
+      }
+      if( dup ){
+        i++;
+        continue;
+      }
+      // -------------------------------- finished checking
+      
+      temp->dependencies[idx] = (char*)malloc(sizeof(char)*10);      
+      strcpy(temp->dependencies[idx],right->dependencies[i]);
+      idx++;
+      i++;
+    }
+  }
+
+
+}
+
+void getDependencies(struct TreeNode* root){
+  if( root->dependencies ){
+    int i = 0;
+    printf("[ ");
+    while( root->dependencies[i] != NULL ){
+      printf("%s, ",root->dependencies[i]);
+      i++;
+    }
+    printf("]\n");
+  }
 }

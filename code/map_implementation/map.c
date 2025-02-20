@@ -4,8 +4,12 @@
 #include <string.h>
 #include "map.h"
 
-bool present(struct map* head,char* key){
-  struct map* cur = head;
+/*
+static int memAddress = 5000;
+struct map* mapHead = NULL;
+
+bool present(char* key){
+  struct map* cur = mapHead;
   while(cur){
     if( strcmp(cur->key,key) == 0 ){
       return true;
@@ -20,32 +24,34 @@ struct map* createMapNode(char* key,struct TreeNode* value){
 
   temp->key = (char*)malloc(sizeof(char)*100);
   strcpy(temp->key,key);
+
   temp->value = value;
+  temp->memAddress = memAddress++;
 
   return temp;
 }
 
-struct map* insert(struct map* head,char* key,struct TreeNode* value){
+struct map* insert(char* key,struct TreeNode* value){
   printf("cache[%s] = %p\n",key,value);
   struct map* temp = createMapNode(key,value);
 
-  if( head == NULL ){
-    head = temp;
+  if( mapHead == NULL ){
+    mapHead = temp;
   }
   else{
-    struct map* cur = head;
+    struct map* cur = mapHead;
     while(cur->next){
       cur = cur->next;
     }
     cur->next = temp;
   }
 
-  return head;
+  return mapHead;
 
 }
 
-struct TreeNode* get(struct map* head,char* key){
-  struct map* cur = head;
+struct TreeNode* get(char* key){
+  struct map* cur = mapHead;
   while(cur){
     if( strcmp(cur->key,key) == 0 ){
       printf("getting value of [%s]\n",key);
@@ -57,25 +63,25 @@ struct TreeNode* get(struct map* head,char* key){
 }
 
 
-struct TreeNode* returnNode(struct map* head,int val,char* str){
+struct TreeNode* returnNode(int val,char* str){
   if( val != -1 ){
     char con[20];
     sprintf(con,"%d",val);
-    return get(head,con);
+    return get(con);
   }
-  return get(head,str);
+  return get(str);
 }
 
 
-void printMap(struct map* head){
-  struct map* cur = head;
+void printMap(){
+  struct map* cur = mapHead;
   while(cur){
-    printf("%s : [%p]\n",cur->key,cur->value);
+    printf("Expression : %s | Address of node : %p | Memory Address : %d\n",cur->key,cur->value,cur->memAddress);
     cur = cur->next;
   }
 
 }
 
-
+*/
 
 

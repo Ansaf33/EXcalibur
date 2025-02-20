@@ -107,26 +107,27 @@ void getInput(FILE* f,char* s){
 
 int arithmetic_expression_codeGen(FILE* f,struct TreeNode* root){
 
-  // IF AT LEAF NODE, THEN ONLY NUMBER OR CONSTANT
+  // leaf node
   if(root->left == NULL && root->right == NULL){
     int regIdx = getReg();
-    // IF NUMBER, MOVE THE NUMBER TO REGISTER
+    // number
     if(root->val != -1 ){
       fprintf(f,"MOV R%d, %d\n",regIdx,root->val);
     }
-    // IF STRING, MOVE THE STRING TO REGISTER
+    // string
     if(root->string != NULL ){
       fprintf(f,"MOV R%d, %s\n",regIdx,root->string);
     }
-    // IF VARIABLE, MOVE FROM MEMORY LOCATION TO REGISTER
+    // variable
     else if(root->varname != NULL){
       int memlocation = getSymbolAddress(root);
       fprintf(f, "MOV R%d, [%d]\n",regIdx,memlocation);
     }
-
-
     return regIdx;
   }
+
+
+
 
   int lReg = arithmetic_expression_codeGen(f,root->left);
   int rReg = arithmetic_expression_codeGen(f,root->right);
@@ -218,6 +219,7 @@ void assignment_codeGen(FILE* f,struct TreeNode* root){
   freeReg();
   // freeing r1
   freeReg();
+
 
 
   

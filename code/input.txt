@@ -1,17 +1,13 @@
 decl
-int a,b,c;
+int a,b;
+int x,y;
 enddecl
 
 
 begin
-
-read(a);
-read(b);
-a = 2*6;
-b = 3*5;
-c = 2*6+3*5;
-write(c);
-
-
+ x = 2*5 + 3*2;
+ y = 3*2 + 4*3;
+ write(x);
+ write(y);
 
 end;

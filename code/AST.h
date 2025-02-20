@@ -23,6 +23,8 @@ struct TreeNode{
   char* content;
 };
 
+bool init_hashmap(void);
+
 bool typeSatisfied(struct TreeNode* root);
 
 struct TreeNode* createNumNode(int val);

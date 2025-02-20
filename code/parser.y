@@ -8,6 +8,7 @@
 #include "evaluator/evaluator.h"
 #include "symbol_table/Gsymbol.h"
 #include "symbol_table/varList.h"
+#include "map_implementation/new_map.h"
 
 
 struct TreeNode* root;
@@ -97,6 +98,7 @@ P :
     root = $2;
     printf("Valid Program.\n");
     Inorder($2);
+
   }
   |
   BEG END ';' {
@@ -270,6 +272,8 @@ int main(int argc, char* argv[]){
 // --------------------------------- PARSING INPUT 
   FILE* f = fopen(argv[1],"r");
   yyin = f;
+
+  bool initialized = init_hashmap();
   yyparse();
 
 

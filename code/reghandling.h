@@ -4,15 +4,20 @@
 #include <stdio.h>
 #include <stdbool.h>
 #include "AST.h"
+#include "LRUcache/LRUcache.h"
 
 // GETTING THE SMALLEST FREE REGISTER
 
 
 int getReg(void);
 
+int getCacheReg();
+
 // FREEING THE HIGHEST OCCUPIED REGISTER
 
 void freeReg(void);
+
+void freeCacheReg(int reg);
 
 // GETTING LABEL
 
@@ -104,6 +109,8 @@ bool isContinue(struct TreeNode* root);
 bool isRepeat(struct TreeNode* root);
 
 bool isDoWhile(struct TreeNode* root);
+
+void invalidate_dependencies(LRUCache* cache,const char* expr);
 
 
 #endif

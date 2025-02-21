@@ -1,18 +1,22 @@
 decl
 int a,b;
 int x,y;
+int c;
 int z;
 enddecl
 
 
 begin
-  b = 3;
-  a = 2;
-  x = a*b;
-  y = 3*4;
-  z = x*y*x + a*b;
-  write(z);
+  if( 3 <= 5 ) then
+    write("hello");
+  endif;
+
+  if( 3 <= 5 ) then
+    write("hey");
+  endif;
+
+
+
+  
  
-
-
 end;

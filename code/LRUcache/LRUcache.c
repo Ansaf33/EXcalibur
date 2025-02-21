@@ -1,28 +1,10 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include "LRUcache.h"
+#include "../reghandling.h"
 
-#define CAPACITY 5 // Maximum cache size
-#define HASHMAP_SIZE 50
 #define MAX_DEPENDENCIES 10
-
-typedef struct LRUNode
-{
-  char *expression;
-  int register_id;
-  char *dependencies[MAX_DEPENDENCIES];
-  struct LRUNode *prev;
-  struct LRUNode *next;
-  struct LRUNode *hash_next; // For handling collisions in the hashmap
-} LRUNode;
-
-typedef struct
-{
-  LRUNode *head;
-  LRUNode *tail;
-  int size;
-  LRUNode *hashmap[HASHMAP_SIZE];
-} LRUCache;
 
 unsigned int hash_func(const char *expression)
 {
@@ -31,7 +13,7 @@ unsigned int hash_func(const char *expression)
   {
     hash = (hash * 31) + (*expression++);
   }
-  return hash % HASHMAP_SIZE;
+  return hash % MAP_SIZE;
 }
 
 LRUCache *create_cache()
@@ -45,6 +27,30 @@ LRUCache *create_cache()
   cache->size = 0;
   memset(cache->hashmap, 0, sizeof(cache->hashmap));
   return cache;
+}
+
+void print_cache(LRUCache *cache)
+{
+  LRUNode *current = cache->head;
+  printf("Cache State (MRU -> LRU):\n");
+  while (current)
+  {
+    printf("[%s: %d ", current->expression, current->register_id);
+    if (current->dependencies[0] != NULL)
+    { // Fixed dependency check
+      printf("( ");
+      int i = 0;
+      while (current->dependencies[i] != NULL)
+      {
+        printf("%s, ", current->dependencies[i]);
+        i++;
+      }
+      printf(") ");
+    }
+    printf("] -> ");
+    current = current->next;
+  }
+  printf("NULL\n");
 }
 
 void move_to_front(LRUCache *cache, LRUNode *node)
@@ -125,14 +131,15 @@ void put(LRUCache *cache, const char *expression, int reg_id, char **dependencie
       else
         cache->head = NULL;
       cache->tail = lru->prev;
+
       free(lru->expression);
 
-      if( lru->dependencies ){
-        int i = 0;
-        while( lru->dependencies[i] != NULL ){
-          free(lru->dependencies[i]);
-          i++;
-        }
+      // Free dependencies
+      int i = 0;
+      while (lru->dependencies[i] != NULL)
+      {
+        free(lru->dependencies[i]);
+        i++;
       }
 
       free(lru);
@@ -147,15 +154,18 @@ void put(LRUCache *cache, const char *expression, int reg_id, char **dependencie
   new_node->expression = strdup(expression);
   new_node->register_id = reg_id;
 
-  if( dependencies ){
+  // Copy dependencies properly and ensure NULL termination
+  memset(new_node->dependencies, 0, sizeof(new_node->dependencies));
+  if (dependencies)
+  {
     int i = 0;
-    while( dependencies[i] != NULL ){
-      new_node->dependencies[i] = (char*)malloc(sizeof(char)*10);
-      strcpy(new_node->dependencies[i],dependencies[i]);
+    while (dependencies[i] != NULL && i < MAX_DEPENDENCIES - 1)
+    {
+      new_node->dependencies[i] = strdup(dependencies[i]);
       i++;
     }
+    new_node->dependencies[i] = NULL; // Null-terminate
   }
- 
 
   new_node->prev = NULL;
   new_node->next = cache->head;
@@ -170,18 +180,25 @@ void put(LRUCache *cache, const char *expression, int reg_id, char **dependencie
   cache->size++;
 }
 
-void invalidate_dependencies(LRUCache *cache, const char *variable)
-{
+ void invalidate_dependencies(LRUCache *cache, const char *variable) {
+  printf("Invalidating %s\n", variable);
   LRUNode *current = cache->head;
   while (current)
   {
     LRUNode *next = current->next;
 
-    if( current->dependencies ){
+    if (current->dependencies)
+    {
       int i = 0;
-      while( current->dependencies[i] != NULL ){
-        if( strcmp(current->dependencies[i],variable) == 0 ){
-          put(cache,current->expression,-1,NULL);
+      while (current->dependencies[i] != NULL)
+      {
+        if (strcmp(current->dependencies[i], variable) == 0)
+        {
+          if( current->register_id >= 15 ){
+            freeCacheReg(current->register_id);
+          }
+          // Just mark it invalid, don't remove dependencies
+          put(cache, current->expression, 0, current->dependencies);
           break;
         }
         i++;
@@ -189,27 +206,7 @@ void invalidate_dependencies(LRUCache *cache, const char *variable)
     }
     current = next;
   }
-}
-
-void print_cache(LRUCache *cache)
-{
-  LRUNode *current = cache->head;
-  printf("Cache State (MRU -> LRU):\n");
-  while (current)
-  {
-    printf("[%s: R%d] -> ", current->expression, current->register_id);
-    if( current->dependencies ){
-      int i = 0;
-      printf("( ");
-      while( current->dependencies[i] != NULL ){
-        printf("%s, ",current->dependencies[i]);
-        i++;
-      }
-      printf(") ]\n");
-    }
-    current = current->next;
-  }
-  printf("NULL\n");
+  print_cache(cache);
 }
 
 void free_cache(LRUCache *cache)
@@ -219,14 +216,17 @@ void free_cache(LRUCache *cache)
   {
     LRUNode *temp = current;
     current = current->next;
+
     free(temp->expression);
-    if( temp->dependencies ){
-      int i = 0;
-      while(temp->dependencies[i] != NULL ){
-        free(temp->dependencies[i]);
-        i++;
-      }
+
+    int i = 0;
+    while (temp->dependencies[i] != NULL)
+    {
+      free(temp->dependencies[i]);
+      i++;
     }
+    memset(temp->dependencies, 0, sizeof(temp->dependencies));
+
     free(temp);
   }
   free(cache);

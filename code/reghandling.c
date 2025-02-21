@@ -4,6 +4,7 @@
 #include <stdbool.h>
 #include "AST.h"
 #include "symbol_table/Gsymbol.h"
+#include "LRUcache/LRUcache.h"
 
 // define the maximum limit of registers R0 to R19
 #define NOR 20
@@ -12,6 +13,10 @@
 static int highestUsedReg = -1;
 // INITIALLY, NO LABELS ARE USED
 static int highestUsedLabel = -1;
+
+// HIGHEST USED CACHE REGISTERS
+int cacheRegisters[5];
+
 
 // --------------------------------------------------------- GET GSymbol ADDRESS
 
@@ -32,12 +37,31 @@ int getLabel(void){
 int getReg(void){
   // FIRST CHECK IF ANY REGISTER IS FREE
   if( highestUsedReg == NOR - 1 ){
-      printf("Cannot allocate more registers.");
+      printf("Cannot allocate more registers.\n");
       exit(1);
   }
   return ++highestUsedReg;
-
 }
+
+// ----------------------------------------------------------- GET CACHE REGISTER
+
+int getCacheReg(void){
+  for(int i=0;i<5;i++){
+    if( cacheRegisters[i] == 0 ){
+      cacheRegisters[i] = 1;
+      return i + 15;
+    }
+  }
+  printf("Cannot allocate more registers.\n");
+  exit(1);
+ }
+
+// ------------------------------------------------------------ FREE CACHE REGISTER
+
+void freeCacheReg(int i){
+  cacheRegisters[i-15] = 0;
+}
+
 
 // ----------------------------------------------------------- FREE REG FUNCTION
 
@@ -48,7 +72,7 @@ void freeReg(){
   }
   // IF ALL REGISTERS ARE ALREADY FREE
   else{
-    printf("All registers already free.");
+    printf("All registers already free.\n");
   }
 
 }
@@ -126,8 +150,20 @@ int arithmetic_expression_codeGen(FILE* f,struct TreeNode* root){
     return regIdx;
   }
 
-
-
+  // ---------------------------------------------- handling retrieval from cache -------------------------
+  printf("Code Gen for %s\n",root->content);
+  // get the cache
+  LRUCache* cache = get_cache();
+  char* expression = root->content;
+  int cached_reg = getValue(cache,expression);
+  printf("Reg for %s : %d\n",expression,cached_reg);
+  if( cached_reg > 0 ){
+    printf("%s EXISTS\n",expression);
+    int res = getReg();
+    fprintf(f,"MOV R%d, R%d\n",res,cached_reg);
+    return res;
+  }
+  //------------------------------------------------ retrieval done --------------------------------------
 
   int lReg = arithmetic_expression_codeGen(f,root->left);
   int rReg = arithmetic_expression_codeGen(f,root->right);
@@ -147,6 +183,16 @@ int arithmetic_expression_codeGen(FILE* f,struct TreeNode* root){
         break;
   }
 
+  if( cached_reg == 0 ){
+    int cr = getCacheReg();
+    printf("[ %s -> %d ]\n",expression,cr);
+    // make change in LRU cache
+    put(cache,expression,cr,root->dependencies); 
+    print_cache(cache);
+    // store value in register
+    fprintf(f,"MOV R%d, R%d\n",cr,lReg);
+  }
+
   // freeing the right register
   freeReg();
 
@@ -162,6 +208,23 @@ int boolean_expression_codeGen(FILE* f,struct TreeNode* root){
   // BOOLEAN EXPRESSIONS ARE OF THE FORM E < E SO EVALUATE BOTH OF THEM FIRST
   int lReg = arithmetic_expression_codeGen(f,root->left);
   int rReg = arithmetic_expression_codeGen(f,root->right);
+
+
+  // ---------------------------------------------- handling retrieval from cache -------------------------
+  printf("Code Gen for %s\n",root->content);
+  // get the cache
+  LRUCache* cache = get_cache();
+  char* expression = root->content;
+  int cached_reg = getValue(cache,expression);
+  printf("Reg for %s : %d\n",expression,cached_reg);
+  if( cached_reg > 0 ){
+    printf("%s EXISTS\n",expression);
+    int res = getReg();
+    fprintf(f,"MOV R%d, R%d\n",res,cached_reg);
+    return res;
+  }
+  //------------------------------------------------ retrieval done --------------------------------------
+
 
   switch(root->op){
     case 5:
@@ -185,6 +248,17 @@ int boolean_expression_codeGen(FILE* f,struct TreeNode* root){
 
   }
 
+  if( cached_reg == 0 ){
+    int cr = getCacheReg();
+    printf("[ %s -> %d ]\n",expression,cr);
+    // make change in LRU cache
+    put(cache,expression,cr,root->dependencies); 
+    print_cache(cache);
+    // store value in register
+    fprintf(f,"MOV R%d, R%d\n",cr,lReg);
+  }
+
+
   // free rReg
   freeReg();
 
@@ -198,7 +272,9 @@ int boolean_expression_codeGen(FILE* f,struct TreeNode* root){
 
 void assignment_codeGen(FILE* f,struct TreeNode* root){
 
-
+  // invalidate the dependencies of LHS
+  LRUCache* cache = get_cache();
+  invalidate_dependencies(cache,root->left->varname);
 
   // Get address from GSymbol table
   int memAddress = getSymbolAddress(root->left);
@@ -550,4 +626,5 @@ void codeGen(FILE* f,struct TreeNode* root,int bl,int cl){
           break;
     }
 }
+
 

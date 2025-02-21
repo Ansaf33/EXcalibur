@@ -127,8 +127,6 @@ struct TreeNode* createOpNode(int type,int op,struct TreeNode* left,struct TreeN
     }
   }
 
-  // ----------------------- REMOVES FROM LRU BECAUSE INVALIDATED-------------- 
- 
   // ------------------- FINISH MAPPING -----------------------
 
   struct TreeNode* temp = (struct TreeNode*)malloc(sizeof(struct TreeNode));
@@ -151,7 +149,7 @@ struct TreeNode* createOpNode(int type,int op,struct TreeNode* left,struct TreeN
     // add dependencies to operator node
     addDependencies(temp,left,right);
 
-    put(cache,content,-1,temp->dependencies);
+    put(cache,content,0,temp->dependencies);
  
   } 
 
@@ -253,6 +251,7 @@ struct TreeNode* createIfNode(struct TreeNode* middle,struct TreeNode* left,stru
   strcat(content,middle->right->content);
 
   struct TreeNode* cached_val = get(hashmap,content);
+
    // ------------------- FINISH MAPPING -----------------------
 
   struct TreeNode* temp = (struct TreeNode*)malloc(sizeof(struct TreeNode));

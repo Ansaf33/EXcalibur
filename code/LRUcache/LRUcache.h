@@ -17,6 +17,7 @@ typedef struct LRUNode
   int register_id;      // Register ID as value
   struct LRUNode *prev; // Pointer to the previous node
   struct LRUNode *next; // Pointer to the next node
+  struct LRUNode* hash_next;
 } LRUNode;
 
 // LRU Cache structure
@@ -45,7 +46,8 @@ void print_cache(LRUCache *cache);
 // Free the cache and release memory
 void free_cache(LRUCache *cache);
 
-// removes LRUcache entries if invalidated during assignment statement
-void invalidate_dependencies(LRUCache* cache,char* expr);
+// invalidate dependencies
+void invalidate_dependencies(LRUCache* cache,const char* expr);
+
 
 #endif // LRU_CACHE_H

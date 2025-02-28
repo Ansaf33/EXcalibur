@@ -1,11 +1,5 @@
 # EXcalibur
-Optimising the Compiler created for the EXPL language.
-
-### Project Objective
-Develop a 3-address code generator for the Experimental Language (ExpL)  and perform a code optimization known as Local
-Common Subexpression Elimination in the generated code. For simplicity, you may omit
-composite data types, type definitions, user defined functions and dynamic memory
-allocation from the ExpL specification. 
+Optimising the Compiler created for the EXPL language using Node Minimisation and LRU Caching for Registers with stored subexpression results.
 
 ## Common Sub-expression Elimination:
 
